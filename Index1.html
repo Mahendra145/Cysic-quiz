@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SpiceFlow Quiz</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      background: linear-gradient(-45deg, #06b6d4, #9333ea, #06b6d4, #9333ea);
+      background-size: 400% 400%;
+      animation: gradient 12s ease infinite;
+    }
+    @keyframes gradient {
+      0% {background-position: 0% 50%;}
+      50% {background-position: 100% 50%;}
+      100% {background-position: 0% 50%;}
+    }
+    .floating-logo {
+      position: absolute;
+      width: 60px;
+      opacity: 0.6;
+      filter: drop-shadow(0 0 12px #9333ea);
+      animation: floatUp 10s linear infinite;
+    }
+    @keyframes floatUp {
+      0% {transform: translateY(100vh) scale(0.8);}
+      100% {transform: translateY(-20vh) scale(1.2);}
+    }
+    .main-logo {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 160px;
+      transform: translate(-50%, 100vh);
+      animation: riseLogo 2s ease forwards;
+    }
+    @keyframes riseLogo {
+      to {transform: translate(-50%, -50%);}
+    }
+    .card {
+      position: relative;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(12px);
+      border-radius: 20px;
+      padding: 20px;
+      width: 320px;
+      text-align: center;
+      color: #fff;
+      box-shadow: 0 4px 30px rgba(0,0,0,0.2);
+      z-index: 1;
+    }
+    .title {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 10px;
+      color: #f5f5f5;
+    }
+    .floating-name {
+      font-size: 20px;
+      animation: floatName 3s ease-in-out infinite;
+    }
+    @keyframes floatName {
+      0%,100%{transform: translateY(0);}
+      50%{transform: translateY(-5px);}
+    }
+    .option {
+      display: block;
+      width: 100%;
+      margin: 6px 0;
+      padding: 10px;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      background: rgba(255,255,255,0.2);
+      color: #fff;
+      transition: 0.3s;
+    }
+    .option:hover {background: rgba(255,255,255,0.3);}
+    .option.correct {background: #16a34a;}
+    .option.wrong {background: #dc2626;}
+    .option.disabled {pointer-events: none;}
+    .controls {
+      margin-top: 10px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+    }
+    .timebar {
+      height: 6px;
+      background: #06b6d4;
+      margin-top: 10px;
+      border-radius: 4px;
+    }
+    #endScreen {display: none;flex-direction: column;}
+    #startScreen {display: flex;flex-direction: column;}
+    input {
+      padding: 8px;
+      border-radius: 8px;
+      border: none;
+      margin: 8px 0;
+      text-align: center;
+    }
+    button {
+      padding: 8px;
+      border-radius: 8px;
+      border: none;
+      margin: 6px 0;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .bounce {animation: bounce 1.2s ease infinite;}
+    @keyframes bounce {
+      0%,100%{transform:translateY(0);}
+      50%{transform:translateY(-6px);}
+    }
+  </style>
+</head>
+<body>
+  <!-- Rising main logo -->
+  <img src="logo.png" class="main-logo" alt="Logo">
+  <!-- Floating small logos -->
+  <img src="logo.png" class="floating-logo" style="left:10%;animation-delay:0s;width:50px;">
+  <img src="logo.png" class="floating-logo" style="left:70%;animation-delay:3s;width:40px;">
+  <img src="logo.png" class="floating-logo" style="left:40%;animation-delay:6s;width:60px;">
+
+  <div class="card">
+    <div class="title">Cysic Quiz center</div>
+
+    <!-- Start Screen -->
+    <div id="startScreen">
+      <label for="nameInput">Username</label>
+      <input id="nameInput" type="text" placeholder="Enter your name">
+      <button id="randomBtn">Random Name</button>
+      <button id="startBtn">Start Quiz</button>
+    </div>
+
+    <!-- Quiz Screen -->
+    <div id="quizScreen" style="display:none;">
+      <div class="floating-name" id="displayName"></div>
+      <div id="question"></div>
+      <div id="options"></div>
+      <div class="controls">
+        <span id="timerText"></span>
+        <span id="qIndex"></span>
+        <span id="scorePill"></span>
+      </div>
+      <div class="timebar"><div id="timebar"></div></div>
+    </div>
+
+    <!-- End Screen -->
+    <div id="endScreen">
+      <h3 id="finalScore"></h3>
+      <p id="percent"></p>
+      <p id="finalMessage"></p>
+      <button id="retryBtn">Play Again</button>
+      <button id="restartBtn">Change Name</button>
+    </div>
+  </div>
+
+<script>
+  const TIME_PER_Q = 20;
+  const QUESTION_POOL = [
+  {
+    q: "How can users obtain the $CGT governance token in the Cysic Network?",
+    choices: [
+      "By purchasing it directly from exchanges",
+      "By staking $CYS and completing computation tasks",
+      "By paying network transaction fees",
+      "By burning $CYS tokens"
+    ],
+    a: 1
+  },
+  {
+    q: "What is one major challenge in ZK proof generation that the Cysic Network aims to solve?",
+    choices: [
+      "Reducing the size of blockchain blocks",
+      "Preventing single points of failure through prover decentralization",
+      "Eliminating the need for cryptographic operations entirely",
+      "Increasing gas fees to improve network security"
+    ],
+    a: 1
+  },
+  {
+    q: "What is the main purpose of Cysic AI's verifiable AI feature?",
+    choices: [
+      "To hide how AI models work for privacy",
+      "To prove that AI decisions are correct and tamper-free",
+      "To increase the speed of AI computations only",
+      "To allow agents to buy and sell compute resources"
+    ],
+    a: 1
+  },
+  {
+    q: "In the Cysic AI ecosystem, what role do agent swarms play?",
+    choices: [
+      "They act as a single AI model performing all tasks alone",
+      "They allow multiple AI agents to work together and exchange value",
+      "They replace human developers entirely",
+      "They only function in centralized cloud environments"
+    ],
+    a: 1
+  },
+  {
+    q: "What is the purpose of the payment_required state in the Crypto A2A Protocol?",
+    choices: [
+      "To pause task execution until blockchain payment is confirmed",
+      "To provide extra input details before starting a task",
+      "To permanently lock an agent's task until admin approval",
+      "To reduce blockchain transaction fees"
+    ],
+    a: 0
+  },
+  {
+    q: "Which blockchain does the first implementation of the Crypto A2A Protocol support?",
+    choices: [
+      "Ethereum",
+      "Bitcoin",
+      "Solana",
+      "Polygon"
+    ],
+    a: 0
+  },
+  {
+    q: "Why does the Cysic Network use a two-stage settlement process for ZK proof verification?",
+    choices: [
+      "To completely avoid using Ethereum for proof settlement",
+      "To reduce hardware requirements for provers",
+      "To balance verification cost and latency by aggregating proofs off-chain before settling on Ethereum",
+      "To ensure only one prover is responsible for proof generation"
+    ],
+    a: 2
+  },
+  {
+    q: "How are validators selected in the Cysic Network's CometBFT consensus mechanism?",
+    choices: [
+      "Randomly chosen without any criteria",
+      "Based on the number of tokens they have staked",
+      "Through community voting",
+      "By Ethereum smart contracts"
+    ],
+    a: 1
+  },
+  {
+    q: "What is the main role of the consensus mechanism in the Cysic Network?",
+    choices: [
+      "To create ZK proofs faster",
+      "To maintain network security and agreement on state",
+      "To mint new tokens automatically",
+      "To manage only governance votes"
+    ],
+    a: 1
+  },
+  {
+    q: "Why does the Cysic Network use a dual-token model?",
+    choices: [
+      "To separate operational activities from governance",
+      "To increase transaction speed",
+      "To prevent proof verification",
+      "To make $CYS tokens non-transferable"
+    ],
+    a: 0
+  }
+];
+
+    
+  let playerName='Player',questions=[],currentIndex=0,score=0,timer=null,timeLeft=TIME_PER_Q,answered=false;
+
+  const startScreen=document.getElementById('startScreen');
+  const endScreen=document.getElementById('endScreen');
+  const quizScreen=document.getElementById('quizScreen');
+  const nameInput=document.getElementById('nameInput');
+  const startBtn=document.getElementById('startBtn');
+  const randomBtn=document.getElementById('randomBtn');
+  const displayName=document.getElementById('displayName');
+  const questionEl=document.getElementById('question');
+  const optionsEl=document.getElementById('options');
+  const timerText=document.getElementById('timerText');
+  const timebar=document.getElementById('timebar');
+  const qIndex=document.getElementById('qIndex');
+  const scorePill=document.getElementById('scorePill');
+  const finalScore=document.getElementById('finalScore');
+  const percent=document.getElementById('percent');
+  const finalMessage=document.getElementById('finalMessage');
+  const retryBtn=document.getElementById('retryBtn');
+  const restartBtn=document.getElementById('restartBtn');
+
+  function shuffleArray(arr){for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}return arr;}
+  function pickQuestions(pool,n){const copy=pool.map(q=>({...q,choices:[...q.choices]}));shuffleArray(copy);return copy.slice(0,n);}
+
+  function startQuiz(){
+    playerName=nameInput.value.trim()||'Player';
+    displayName.textContent=playerName;
+    questions=pickQuestions(QUESTION_POOL,QUESTION_POOL.length).map(q=>{
+      const choices=q.choices.map((c,i)=>({c,i}));shuffleArray(choices);
+      const newIndex=choices.findIndex(x=>x.i===q.a);
+      return {q:q.q,choices:choices.map(x=>x.c),a:newIndex};
+    });
+    currentIndex=0;score=0;answered=false;
+    startScreen.style.display='none';endScreen.style.display='none';quizScreen.style.display='block';
+    updateScoreUI();renderQuestion();
+  }
+
+  function renderQuestion(){
+    clearInterval(timer);answered=false;
+    const cur=questions[currentIndex];
+    questionEl.textContent=cur.q;optionsEl.innerHTML='';
+    cur.choices.forEach((opt,idx)=>{
+      const btn=document.createElement('button');
+      btn.className='option';btn.textContent=opt;btn.dataset.index=idx;
+      btn.addEventListener('click',()=>selectAnswer(btn,idx));
+      optionsEl.appendChild(btn);
+    });
+    qIndex.textContent=`${currentIndex+1} / ${questions.length}`;
+    updateScoreUI();timeLeft=TIME_PER_Q;updateTimerUI();
+    timebar.style.transition='none';timebar.style.width='100%';
+    void timebar.offsetWidth;
+    timebar.style.transition=`width ${TIME_PER_Q}s linear`;
+    timebar.style.width='0%';
+    timer=setInterval(()=>{
+      timeLeft-=0.2;
+      if(timeLeft<=0){clearInterval(timer);timeLeft=0;updateTimerUI();handleTimeout();}
+      else updateTimerUI();
+    },200);
+  }
+  function updateTimerUI(){timerText.textContent=Math.ceil(timeLeft)+'s';}
+  function selectAnswer(btn,idx){
+    if(answered)return;answered=true;clearInterval(timer);
+    const cur=questions[currentIndex];const correctIdx=cur.a;
+    if(idx===correctIdx){btn.classList.add('correct');score++;updateScoreUI();}
+    else{btn.classList.add('wrong');
+      const correctBtn=[...optionsEl.children].find(b=>+b.dataset.index===correctIdx);
+      if(correctBtn)correctBtn.classList.add('correct');
+    }
+    [...optionsEl.children].forEach(b=>b.classList.add('disabled'));
+    setTimeout(()=>nextQuestion(),1200);
+  }
+  function handleTimeout(){
+    if(answered)return;answered=true;
+    const cur=questions[currentIndex];const correctIdx=cur.a;
+    const correctBtn=[...optionsEl.children].find(b=>+b.dataset.index===correctIdx);
+    if(correctBtn)correctBtn.classList.add('correct');
+    [...optionsEl.children].forEach(b=>b.classList.add('disabled'));
+    setTimeout(()=>nextQuestion(),1200);
+  }
+  function nextQuestion(){
+    currentIndex++;
+    if(currentIndex>=questions.length)finishQuiz();
+    else renderQuestion();
+  }
+  function finishQuiz(){
+    clearInterval(timer);
+    quizScreen.style.display='none';
+    finalScore.textContent=`${score} / ${questions.length}`;
+    const pct=Math.round((score/questions.length)*100);
+    percent.textContent=`${pct}%`;
+
+    if(score<=5){finalMessage.textContent='Great start!';finalMessage.className='';}
+    else if(score<=8){finalMessage.textContent='Amazing ✨';finalMessage.className='bounce';}
+    else{finalMessage.textContent='Perfect, congratulations 🎉';finalMessage.className='bounce';}
+
+    endScreen.style.display='flex';
+  }
+  function updateScoreUI(){scorePill.textContent=`Score: ${score}`;}
+
+  startBtn.addEventListener('click',()=>startQuiz());
+  randomBtn.addEventListener('click',()=>{
+    const names=['Nova','Blaze','Orion','Luna','Sparky','Echo','Juno','Sky','Zyra','Flux'];
+    nameInput.value=names[Math.floor(Math.random()*names.length)];
+  });
+  retryBtn.addEventListener('click',()=>startQuiz());
+  restartBtn.addEventListener('click',()=>{
+    endScreen.style.display='none';startScreen.style.display='flex';
+  });
+</script>
+</body>
+</html>
